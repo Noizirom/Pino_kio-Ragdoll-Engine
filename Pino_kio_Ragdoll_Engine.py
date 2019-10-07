@@ -3,13 +3,13 @@ bl_info = {
     "name": "Pino_Kio Ragdoll Engine",
     "description":  "Adds a Ragdoll Rig to a Skeleton",
     "author": "Noizirom",
-    "version": (0, 0, 3),
+    "version": (0, 0, 4),
     "blender": (2, 80, 0),
     "location": "View3D > Add > Armature > Pino_Kio Ragdoll Engine",
     "warning": "", 
     "wiki_url": "https://github.com/Noizirom/Pino_Kio-Ragdoll-Engine",
     "tracker_url": "",
-    "category": "Add Armature"
+    "category": "Add Object"
 }
 
 
@@ -43,6 +43,54 @@ ext = 'UCX_'
 tgt = '_target'
 coll = bpy.data.collections
 
+#Body Parts
+root = "root"
+head = "head"
+neck = "neck"
+clavicle_l = "clavicle_L"
+clavicle_r = "clavicle_R"
+breast_l = "breast_L"
+breast_r = "breast_R"
+chest = "spine03"
+abdomen = "spine02"
+hip = "spine01"
+pelvis = "pelvis"
+thigh_l = "thigh_L"
+calf_l = "calf_L" 
+foot_l = "foot_L"
+thigh_r = "thigh_R"
+calf_r = "calf_R"
+foot_r = "foot_R"
+upperarm_l = "upperarm_L"
+lowerarm_l = "lowerarm_L"
+upperarm_r = "upperarm_R"
+lowerarm_r = "lowerarm_R"
+hand_l = "hand_L"
+thumb_l = ["thumb01_L", "thumb02_L", "thumb03_L"]
+index_l = ["index00_L", "index01_L", "index02_L", "index03_L"]
+middle_l = ["middle00_L", "middle01_L", "middle02_L", "middle03_L"]
+ring_l = ["ring00_L", "ring01_L", "ring02_L", "ring03_L"]
+pinky_l = ["pinky00_L", "pinky01_L", "pinky02_L", "pinky03_L"]
+hand_r = "hand_R"
+thumb_r = ["thumb01_R", "thumb02_R", "thumb03_R"]
+index_r = ["index00_R", "index01_R", "index02_R", "index03_R"]
+middle_r = ["middle00_R", "middle01_R", "middle02_R", "middle03_R"]
+ring_r = ["ring00_R", "ring01_R", "ring02_R", "ring03_R"]
+pinky_r = ["pinky00_R", "pinky01_R", "pinky02_R", "pinky03_R"]
+
+arms = [upperarm_l, lowerarm_l, upperarm_r, lowerarm_r]
+clavicles = [clavicle_l, clavicle_r]
+breasts = [breast_l, breast_r]
+legs = [thigh_l, calf_l, thigh_r, calf_r]
+feet = [foot_l, foot_r]
+limbs = arms + legs
+hands = [hand_l, hand_r]
+spine = [chest, abdomen, hip]
+body_steer = [head, neck, pelvis]
+b_torso = spine + clavicles + breasts
+body_parts = body_steer + limbs + hands + feet
+
+
 # ------------------------------------------------------------------------
 #    Functions
 # ------------------------------------------------------------------------
@@ -51,27 +99,6 @@ coll = bpy.data.collections
 ###############################################################################################################################
 #LIST OPS
 
-def flat_list(List):
-    return [i[j] for i in List for j in range(len(i))]
-
-def list_inclusion(List, Ref):
-    List, Ref = list(List), list(Ref)
-    return [[i for i in List if j in i] for j in Ref]
-
-def list_exclusion(List, Ref):
-    List, Ref = list(List), list(Ref)
-    return [i for i in List if not any(j in i for j in Ref)]
-
-def name_list(Ob):
-    return [i.name for i in Ob]
-
-def name_rm_ext(Name, ext):
-    return Name.replace(ext, '')
-
-def list_split_sides(List):
-    lt = [i for i in List if '_l' in i or '_L' in i]
-    rt = [i for i in List if '_r' in i or '_R' in i]   
-    return lt, rt
 
 def bone_dict(bones):
     '''
@@ -87,8 +114,6 @@ def bone_dict(bones):
     bone.vector, bone.parent]
     for idx, bone in enumerate(bones)}
     return bd
-
-    
 
 
 ###############################################################################################################################
@@ -319,13 +344,13 @@ def ragdoll_obj(part, ext, mat, length, radius):
     obj[p].display_type = 'WIRE'
 
 
-def add_emp(pbn, Dict):
+def add_empty(pbn, Dict):
     tmp_final = Dict[pbn][10] @ Matrix(rotation_matrix(0,0,radians(-90))).to_4x4()
     matrix_final = tmp_final @ Matrix(rotation_matrix(0,0,radians(90))).to_4x4()
     obj_empty = obj.new(pbn + tgt, None)
     coll['Collection'].objects.link(obj_empty)
     #draw size
-    obj_empty.empty_display_size = 0.1
+    obj_empty.empty_display_size = 0.001
     obj_empty.matrix_world = matrix_final
 
 
@@ -341,13 +366,14 @@ def add_parent(rd):
     except:
         pass
 
-def add_parent_torso(part):
+def add_parent_torso(part, Dict):
     try:
         add_parent("torso")
         bpy.ops.object.select_all(action='DESELECT')
         par = obj[ext + "torso"]
-        t = flat_list(part)
-        for i in t:
+        for p in part:
+            add_empty(p, Dict)
+        for i in part:
             obj[i + tgt].select_set(state=True)
         par.select_set(state=True)
         bpy.context.view_layer.objects.active = par
@@ -361,6 +387,7 @@ def add_collection(List, List2):
     for e in List2:
         obj[e + tgt].select_set(state=True)
     obj["torso" + tgt].select_set(state=True)
+    obj[ext + "torso"].select_set(state=True)
     try:
         if coll[col_nme]:
             coll.remove(coll[col_nme])
@@ -369,95 +396,52 @@ def add_collection(List, List2):
     bpy.ops.object.move_to_collection(collection_index=0, is_new=True, new_collection_name=col_nme)
 
 
-def Part_names():
-    pb = bpy.context.object.pose.bones
-    xtrb = ['twist', 'root', 'muscle', 'breast', 'IK_control_', 'struct_', 'rot_helper']
-    hand =['hand', 'thumb', 'index', 'middle', 'ring', 'pinky']
-    hdb = ['head']
-    pel = ['pelvis']
-    torso = ['neck', 'spine', 'clavicle']
-    legs = ['thigh', 'calf']
-    foot = ['foot', 'toe']
-    rl = xtrb + hand + foot
-    b_list = name_list(pb)
-    bl = list_exclusion(b_list, rl)
-    b_xtrb = list_inclusion(b_list, xtrb)
-    b_head = list_inclusion(bl, hdb)
-    b_torso = list_inclusion(bl, torso)
-    b_arms = [i for i in bl if 'arm' in i]
-    b_hand = list_inclusion(b_list, hand)
-    b_leg = list_inclusion(bl, legs)
-    b_foot = list_inclusion(b_list, foot)
-    #center mass
-    head = b_head[0][0]
-    neck = b_torso[0][0]
-    clavicle_l = b_torso[2][0]
-    clavicle_r = b_torso[2][1]
-    #spine
-    chest = b_torso[1][2]
-    abdomen = b_torso[1][1]
-    hip = b_torso[1][0]
-    #pelvis
-    pelvis = bl[0]
-    #legs
-    thigh_l = b_leg[0][1]
-    calf_l = b_leg[1][1]
-    foot_l = b_foot[0][1]
-    thigh_r = b_leg[0][0]
-    calf_r = b_leg[1][0]
-    foot_r = b_foot[0][0]
-    #arms
-    upperarm_l = b_arms[0]
-    lowerarm_l = b_arms[1]
-    upperarm_r = b_arms[2]
-    lowerarm_r = b_arms[3]
-    #hands
-    hand_l = b_hand[0][0]
-    hand_r = b_hand[0][1]
-    #fingers
-    thumb_l, thumb_r = list_split_sides(b_hand[1])
-    index_l, index_r = list_split_sides(b_hand[2])
-    middle_l, middle_r = list_split_sides(b_hand[3])
-    ring_l, ring_r = list_split_sides(b_hand[4])
-    pinky_l, pinky_r = list_split_sides(b_hand[5])
-    #ragdoll list
-    hands = b_hand[0]
-    feet = b_foot[0]
-    limbs = b_arms + b_leg[0] + b_leg[1]
-    rdl = limbs + [head, pelvis]
-    emp_list = bl + hands + feet
-    return head, neck, clavicle_l, clavicle_r, chest, abdomen, hip, pelvis, thigh_l, calf_l, foot_l, thigh_r, calf_r, foot_r, upperarm_l, lowerarm_l, upperarm_r, lowerarm_r, hand_l, hand_r, thumb_l, thumb_r, index_l, index_r, middle_l, middle_r, ring_l, ring_r, pinky_l, pinky_r, hands, feet, limbs, b_torso, rdl, emp_list, bl
+def add_modifier(Object, Name, Type):
+    Object.modifiers.new(Name, type=Type)
+
+def add_shrinkwrap(Object, Target):
+    add_modifier(Object, 'shrink', 'SHRINKWRAP')
+    Object.modifiers['shrink'].target = Target
+
+def apply_mod(Name):
+    #credit to Jayanam
+    active_obj = bpy.context.view_layer.objects.active
+    for obj in bpy.context.view_layer.objects:
+        for modifier in obj.modifiers:
+            if Name in modifier.name:
+                bpy.context.view_layer.objects.active = obj
+                bpy.ops.object.modifier_apply(modifier=modifier.name)
+    bpy.context.view_layer.objects.active = active_obj
 
 
 ###############################################################################################################################
 #MAIN
 
 def Ragdoll(self, context):
-    head, neck, clavicle_l, clavicle_r, chest, abdomen, hip, pelvis, thigh_l, calf_l, foot_l, thigh_r, calf_r, foot_r, upperarm_l, lowerarm_l, upperarm_r, lowerarm_r, hand_l, hand_r, thumb_l, thumb_r, index_l, index_r, middle_l, middle_r, ring_l, ring_r, pinky_l, pinky_r, hands, feet, limbs, b_torso, rdl, emp_list, bl = Part_names()
     infl = bpy.context.scene.ragdoll_rig.rd_influence
     arm = bpy.context.object
+    body = obj[arm.name].children[0]
     bones = bpy.data.armatures[0].bones
     pb = bpy.context.object.pose.bones
     amw = arm.matrix_world.copy()
     body_weight = 79 #150 lbs
-    p_mass = 1
     bd = bone_dict(bones)
     body_height = bd[head][6][2]
     p_orig_ht = bd[pelvis][2][2]
-    rd_dict = {
-            head: [-22, 37, -45, 45, -30, 30, 'torso', .08],
-            neck: [-22, 37, -45, 45, -30, 30, '', ''],
+    ragdoll_dict = {
+            head: [-22, 37, -45, 45, -30, 30, neck, .06],
+            neck: [-22, 37, -45, 45, -30, 30, 'torso', .02],
             clavicle_l: [-30, 30, 0, 0, -30, 10, '', ''],
             clavicle_r: [-30, 30, 0, 0, -10, 30, '', ''],
-            'torso': [-1, 2, -2, 2, -1, 1, pelvis, .5],
-            pelvis: [0, 0, 0, 0, 0, 0, '', ''],
+            'torso': [-22, 45, -45, 45, -15, 15, pelvis, .5],
+            pelvis: [-22, 45, -45, 45, -15, 15, '', .5],
             hip: [-45, 68, -45, 45, -30, 30,'', ''],
             abdomen: [-45, 68, -45, 45, -30, 30,'', ''],
             chest: [-45, 22, -45, 45, -30, 30, '', ''],
             upperarm_l: [-58, 95, -30, 15, -60, 105, 'torso', .03],
             upperarm_r: [-58, 95, -30, 15, -60, 105, 'torso', .03],
             lowerarm_l: [-146, 0, -15, 0, 0, 0, upperarm_l, .014],
-            lowerarm_r: [-146, 0, 0, 15, 0, 0, upperarm_r, .014],
+            lowerarm_r: [-146, 0, -15, 0, 0, 0, upperarm_r, .014],
             hand_l: [-45, 45, -90, 86, -25, 36, lowerarm_l, .006],
             hand_r: [-45, 45, -86, 90, -36, 25, lowerarm_r, .006],
             thigh_l: [-90, 45, -15, 15, -22, 17, pelvis, .1],
@@ -468,11 +452,12 @@ def Ragdoll(self, context):
             foot_r: [-45, 44, -26, 26, -74, 15, calf_r, .01]
             }
     limit_bone_scale(pb)
-    limit_bone_rotation(rd_dict, pb)
+    limit_bone_rotation(ragdoll_dict, pb)
     for p in limbs:
-        ragdoll_obj(p, ext, bd[p][10], bd[p][8]*.9, bd[p][7])
+        ragdoll_obj(p, ext, bd[p][10], bd[p][8], bd[p][7])
     ragdoll_obj(pelvis, ext, bd[pelvis][10], bd[pelvis][8], bd[clavicle_l][8]*.95)
     ragdoll_obj(head, ext, bd[head][10], bd[head][8], bd[head][8]/2)
+    ragdoll_obj(neck, ext, bd[neck][10], bd[neck][8], bd[neck][8]/2)
     for p in hands:
         ragdoll_obj(p, ext, bd[p][10], bd[p][3], bd[p][8])
     for p in feet:
@@ -481,30 +466,30 @@ def Ragdoll(self, context):
     torso_obj(bd[hip][10], torso_length, bd[clavicle_l][8])
     torso_dist = (vec_dist(obj[ext + "torso"].location.y, obj[ext + head].location.y))/2
     obj[ext + "torso"].location.y = obj[ext + "torso"].location.y - torso_dist
-    add_emp(hip, bd)
+    add_empty(hip, bd)
     obj[hip + tgt].name = "torso" + tgt
-    for b in emp_list:
-        add_emp(b, bd)
-    for bn in rdl:
+    for b in body_parts:
+        add_empty(b, bd)
+    for bn in body_parts:
         add_parent(bn)
-    for bn in hands:
-        add_parent(bn)
-    for bn in feet:
-        add_parent(bn)        
-    for p in rd_dict:
-        add_rbc(p, rd_dict)
-    for c in rd_dict:
-        if not rd_dict[c][7]:
+    for p in ragdoll_dict:
+        add_rbc(p, ragdoll_dict)
+    for c in ragdoll_dict:
+        if not ragdoll_dict[c][7]:
             pass
         else:
-            obj[ext + c].rigid_body.mass = body_weight * rd_dict[c][7]
-            obj[ext + c].rigid_body.collision_shape = 'CAPSULE'
-            obj[ext + pelvis].rigid_body.mass = p_mass
-    obj[ext + pelvis].rigid_body.collision_shape = 'CAPSULE'
+            obj[ext + c].rigid_body.mass = body_weight * ragdoll_dict[c][7]
+            obj[ext + c].rigid_body.collision_shape = 'MESH'
+    obj[ext + pelvis].rigid_body.collision_shape = 'MESH'
     bpy.ops.object.select_all(action='DESELECT')
-    add_parent_torso(b_torso)
-    add_collection((rdl + hands + feet), emp_list)
-    copy_empty_transform(pb, bl, infl)
+    add_parent_torso(b_torso, bd)
+    for o in obj:
+        if ext in o.name:
+            add_shrinkwrap(o, body)
+    apply_mod('shrink')
+    add_collection(body_parts, body_parts)
+    copy_empty_transform(pb, body_parts, infl)
+    copy_empty_transform(pb, b_torso, infl)
     bpy.ops.object.select_all(action='DESELECT')
 
 
@@ -531,26 +516,7 @@ class RR_Properties(PropertyGroup):
         min = 0.0,
         max = 1.0,
         )
-'''
-    add_origin_bool: BoolProperty(
-        name="Origin at Centroid",
-        description="Place origin at center of object",
-        default = False
-        )
 
-    set_smooth_bool: BoolProperty(
-        name = "Set Smooth",
-        description = "New Object Set Smooth",
-        default = False
-        )
-
-    obj_name: StringProperty(
-        name="name",
-        description="Enter the Object Name",
-        default="Object",
-        maxlen=1024,
-        )
-'''
 
 # ------------------------------------------------------------------------
 #    Operators
@@ -589,11 +555,6 @@ class OBJECT_PT_pino_kio_ragdoll(Panel):
         rd_rig = scene.ragdoll_rig
 
         layout.prop(rd_rig, "rd_influence")
-        '''
-        layout.prop(rd_rig, "add_origin_bool")
-        layout.prop(rd_rig, "set_smooth_bool")
-        layout.prop(rd_rig, "obj_name")
-        '''
         layout.operator("object.pino_kio_ragdoll")
         layout.separator()
 
