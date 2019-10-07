@@ -9,3 +9,7 @@ First addon version.
 v0.0.3
 Fixed hand parenting to targets.
 Corrected upperarm_R Z Rotation Limits.
+
+v0.0.4
+Engine reformatted.
+Ragdoll is now shrinkwrapped to original mesh.
