@@ -121,7 +121,7 @@ def ragdoll_dict(part_names):
         part_names[21]: [-10, 10, 0, 0, 0, 0, part_names[18], .05],                 #breast_R
         part_names[19]: [-22, 45, -45, 45, -15, 15, '', .1],                        #pelvis
         part_names[16]: [-45, 68, -45, 45, -30, 30, part_names[19], .1],            #spine_01
-        part_names[17]: [-45, 68, -45, 45, -30, 30, part_names[16], .2],            #spine_02
+        part_names[17]: [-45, 22, -45, 45, -30, 30, part_names[16], .2],            #spine_02
         part_names[18]: [-45, 22, -45, 45, -30, 30, part_names[17], .1],            #spine_03
         part_names[4]: [-58, 95, -30, 15, -60, 105, part_names[2], .03],            #upperarm_L
         part_names[5]: [-58, 95, -30, 15, -60, 105, part_names[3], .03],            #upperarm_R
@@ -189,6 +189,8 @@ def rd_parents(container, extension):
         ["{}".format(container[21]), "{}".format(container[18])],
     ]
     rdp = [
+        ["{}_{}".format(extension, container[0]), "{}_{}".format(extension, container[1])]
+        ["{}_{}".format(extension, container[1]), "{}_{}".format(extension, container[18])]
         ["{}_{}".format(extension, container[2]), "{}_{}".format(extension, container[18])],
         ["{}_{}".format(extension, container[3]), "{}_{}".format(extension, container[18])],
         ["{}_{}".format(extension, container[16]), "{}_{}".format(extension, container[19])],
@@ -583,6 +585,8 @@ def new_ragdoll(armature, up_vec, extension, collection, container):
     for i in container:
         if i in pbn:
             if i == container[0]: #head
+                rad = pbd[i][4] * 3 #(bd[i][3]) * 3
+            if i == container[1]: #neck
                 rad = pbd[i][4] #(bd[i][3]) * 3
             if i == container[19]: #pelvis
                 rad = pbd[i][4] #/ 2
@@ -665,6 +669,18 @@ def add_rbc(part, Dict, extension):
         rbc.limit_ang_y_upper = radians(yu)
         rbc.limit_ang_z_lower = radians(zl)
         rbc.limit_ang_z_upper = radians(zu)
+
+
+def test_plane():
+    bpy.ops.mesh.primitive_plane_add(size=2, enter_editmode=False, location=(0, 0, 0))
+    bpy.ops.transform.resize(value=(3, 3, 3), orient_type='GLOBAL', orient_matrix=((1, 0, 0), (0, 1, 0), (0, 0, 1)), orient_matrix_type='GLOBAL', mirror=True, use_proportional_edit=False, proportional_edit_falloff='SMOOTH', proportional_size=1, use_proportional_connected=False, use_proportional_projected=False)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    bpy.ops.transform.translate(value=(0, 0, -0.0526462), orient_type='GLOBAL', orient_matrix=((1, 0, 0), (0, 1, 0), (0, 0, 1)), orient_matrix_type='GLOBAL', constraint_axis=(False, False, True), mirror=True, use_proportional_edit=False, proportional_edit_falloff='SMOOTH', proportional_size=1, use_proportional_connected=False, use_proportional_projected=False)
+    bpy.ops.rigidbody.object_add()
+    bpy.context.object.rigid_body.type = 'PASSIVE'
+    bpy.context.object.rigid_body.kinematic = True
+    bpy.context.object.hide_render = True
+    bpy.context.object.hide_viewport = True
 
 
 ###############################################################################################################################
@@ -808,12 +824,21 @@ class OBJECT_OT_pino_kio_ragdoll(Operator):
     bl_idname = "object.pino_kio_ragdoll"
     bl_label = "Pino_Kio Ragdoll"
     bl_options = {'REGISTER', 'UNDO'}
-    
-    
-    
+        
     def execute(self, context):
         RD = Ragdoll(bpy.context.object, [0,0,1], "RD", "Ragdoll")
         RD.ragdoll(part_names)
+        return {'FINISHED'}
+
+
+class OBJECT_OT_test_plane(Operator):
+    """Add a test invisible passive plane"""
+    bl_idname = "object.test_plane"
+    bl_label = "Test Plane"
+    bl_options = {'REGISTER', 'UNDO'}
+        
+    def execute(self, context):
+        test_plane()
         return {'FINISHED'}
 
 # ------------------------------------------------------------------------
@@ -838,6 +863,7 @@ class OBJECT_PT_pino_kio_ragdoll(Panel):
 
         #layout.prop(rd_rig, "rd_influence")
         layout.operator("object.pino_kio_ragdoll")
+        layout.operator("object.test_plane")
         layout.separator()
 
 
@@ -850,6 +876,7 @@ classes = (
     RR_Properties,
     OBJECT_OT_pino_kio_ragdoll,
     OBJECT_PT_pino_kio_ragdoll,
+    OBJECT_OT_test_plane,
 )
 
 
