@@ -97,18 +97,20 @@ def finger_dict(lh_list, rh_list, container):
         for part in lh_list[item]:
             if part == lh_list[item][0]:
                 target = container[8] #hand_L
+                fd.update({part: [0,0,0,0,-5,5, target, 0.01]})
             else:
                 idx = lh_list[item].index(part)- 1
                 target = lh_list[item][idx]
-            fd.update({part: [0,90,0,0,-5,5, target, 0.01]})
+                fd.update({part: [0,90,0,0,-5,5, target, 0.01]})
     for item in range(len(rh_list)):
         for part in rh_list[item]:
             if part == rh_list[item][0]:
-                target = container[9] #hand_L
+                target = container[9] #hand_R
+                fd.update({part: [0,0,0,0,-5,5, target, 0.01]})
             else:
                 idx = rh_list[item].index(part)- 1
                 target = rh_list[item][idx]
-            fd.update({part: [0,90,0,0,-5,5, target, 0.01]})
+                fd.update({part: [0,90,0,0,-5,5, target, 0.01]})
     return fd
 
 def ragdoll_dict(part_names):
@@ -127,8 +129,8 @@ def ragdoll_dict(part_names):
         part_names[5]: [-58, 95, -30, 15, -60, 105, part_names[3], .03],            #upperarm_R
         part_names[6]: [-146, 0, -15, 0, 0, 0, part_names[4], .014],                #lowerarm_L
         part_names[7]: [-146, 0, -15, 0, 0, 0, part_names[5], .014],                #lowerarm_R
-        part_names[8]: [-45, 45, -90, 86, -25, 36, part_names[6], .006],            #hand_L
-        part_names[9]: [-45, 45, -86, 90, -36, 25, part_names[7], .006],            #hand_R
+        part_names[8]: [-30, 30, -5, 5, -25, 36, part_names[6], .006],              #hand_L
+        part_names[9]: [-30, 30, -5, 5, -36, 25, part_names[7], .006],              #hand_R
         part_names[10]: [-90, 45, -15, 15, -22, 17, part_names[19], .1],            #thigh_L
         part_names[11]: [-90, 45, -15, 15, -22, 17, part_names[19], .1],            #thigh_R
         part_names[12]: [0, 150, 0, 0, 0, 0, part_names[10], .05],                  #calf_L
@@ -189,8 +191,8 @@ def rd_parents(container, extension):
         ["{}".format(container[21]), "{}".format(container[18])],
     ]
     rdp = [
-        ["{}_{}".format(extension, container[0]), "{}_{}".format(extension, container[1])]
-        ["{}_{}".format(extension, container[1]), "{}_{}".format(extension, container[18])]
+        ["{}_{}".format(extension, container[0]), "{}_{}".format(extension, container[1])],
+        ["{}_{}".format(extension, container[1]), "{}_{}".format(extension, container[18])],
         ["{}_{}".format(extension, container[2]), "{}_{}".format(extension, container[18])],
         ["{}_{}".format(extension, container[3]), "{}_{}".format(extension, container[18])],
         ["{}_{}".format(extension, container[16]), "{}_{}".format(extension, container[19])],
@@ -214,7 +216,7 @@ def new_collection(Name):
     bpy.context.scene.collection.children.link(nc)
 
 
-df = default_fingers()
+#df = default_fingers()
 
 part_names = default_names
 #part_names = (i for i in default_names)
