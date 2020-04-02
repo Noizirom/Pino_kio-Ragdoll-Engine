@@ -17,3 +17,7 @@ Ragdoll is now shrinkwrapped to original mesh.
 v0.0.5
 Engine Structured in classes.
 Test Plane button added
+
+!!! WARNING!!!
+PINO_KIO RAGDOLL WILL NOW BE ADDED TO THE SELF_DOT_ACCESSORIES ADDON. 
+https://github.com/Noizirom/self_dot_accessories
